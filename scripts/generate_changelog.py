@@ -11,6 +11,7 @@ from datetime import datetime
 
 # Null byte delimiter — safe against any commit message content
 FIELD_SEP = "\x00"
+RECORD_SEP = "\x01"
 
 CONVENTIONAL_MAP = {
     "feat": "Added",
@@ -63,7 +64,6 @@ def get_first_commit():
 
 
 def get_commits(from_ref, to_ref, no_merges=False):
-    RECORD_SEP = "\x01"
     fmt = FIELD_SEP.join(["%H", "%s", "%an", "%ai", f"%b{RECORD_SEP}"])
     args = ["log", f"{from_ref}..{to_ref}", f"--pretty=format:{fmt}"]
     if no_merges:
@@ -216,6 +216,11 @@ def main():
     parser.add_argument(
         "--no-merges", action="store_true", help="Exclude merge commits"
     )
+    parser.add_argument(
+        "--exclude-types",
+        dest="exclude_types",
+        help="Comma-separated commit types to exclude (e.g. chore,ci,test)",
+    )
     args = parser.parse_args()
 
     if args.prepend and not args.output:
@@ -236,6 +241,25 @@ def main():
     if not commits:
         print("No commits found in range.", file=sys.stderr)
         sys.exit(0)
+
+    if args.exclude_types:
+        excluded = {t.strip() for t in args.exclude_types.split(",")}
+        filtered = []
+        for c in commits:
+            m = CONV_PATTERN.match(c["subject"])
+            if m and m.group("type") in excluded:
+                continue
+            filtered.append(c)
+        commits = filtered
+
+    if not commits:
+        print("No commits remaining after filtering.", file=sys.stderr)
+        sys.exit(0)
+
+    print(
+        f"Processing {len(commits)} commits ({from_ref}..{args.to_ref})",
+        file=sys.stderr,
+    )
 
     formatter = FORMATTERS[args.format]
     label = args.version_label or args.to_ref

@@ -23,6 +23,15 @@ Options:
 - `--version`: Custom version label for the header (e.g. `v1.3.0`). Defaults to `--to` ref.
 - `--prepend`: Insert new entries into existing file below the H1 header (requires `--output`).
 - `--no-merges`: Exclude merge commits.
+- `--exclude-types`: Comma-separated commit types to skip (e.g. `chore,ci,test`).
+
+## Format Selection
+
+| Scenario | Recommended Format |
+|----------|--------------------|
+| Open-source library release | `keepachangelog` |
+| Project using Conventional Commits | `conventional` |
+| Internal team update / sprint summary | `grouped` |
 
 ## Workflow
 
@@ -79,6 +88,9 @@ python3 scripts/generate_changelog.py --version v1.3.0 --output CHANGELOG.md --p
 
 # Conventional format, no merge commits
 python3 scripts/generate_changelog.py --format conventional --no-merges
+
+# Exclude chore and ci commits
+python3 scripts/generate_changelog.py --exclude-types chore,ci
 
 # Quick internal summary grouped by date
 python3 scripts/generate_changelog.py --format grouped --output release-notes.md
