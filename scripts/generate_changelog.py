@@ -63,7 +63,8 @@ def get_first_commit():
 
 
 def get_commits(from_ref, to_ref, no_merges=False):
-    fmt = FIELD_SEP.join(["%H", "%s", "%an", "%ai"])
+    RECORD_SEP = "\x01"
+    fmt = FIELD_SEP.join(["%H", "%s", "%an", "%ai", f"%b{RECORD_SEP}"])
     args = ["log", f"{from_ref}..{to_ref}", f"--pretty=format:{fmt}"]
     if no_merges:
         args.append("--no-merges")
@@ -71,15 +72,19 @@ def get_commits(from_ref, to_ref, no_merges=False):
     if not output:
         return []
     commits = []
-    for line in output.splitlines():
-        parts = line.split(FIELD_SEP, 3)
-        if len(parts) == 4:
+    for record in output.split(RECORD_SEP):
+        record = record.strip()
+        if not record:
+            continue
+        parts = record.split(FIELD_SEP, 4)
+        if len(parts) == 5:
             commits.append(
                 {
                     "hash": parts[0][:8],
                     "subject": parts[1],
                     "author": parts[2],
                     "date": parts[3][:10],
+                    "body": parts[4].strip(),
                 }
             )
     return commits
@@ -87,6 +92,7 @@ def get_commits(from_ref, to_ref, no_merges=False):
 
 def parse_commit(commit):
     subject = commit["subject"]
+    body = commit.get("body", "")
     m = CONV_PATTERN.match(subject)
     if m:
         ctype = m.group("type")
@@ -94,7 +100,7 @@ def parse_commit(commit):
         bang = m.group("bang")
         desc = m.group("desc")
         category = CONVENTIONAL_MAP.get(ctype, "Other")
-        if bang or "BREAKING CHANGE" in subject:
+        if bang or "BREAKING CHANGE" in subject or "BREAKING CHANGE" in body:
             category = "Breaking Changes"
         return {**commit, "category": category, "scope": scope, "description": desc}
     return {**commit, "category": "Other", "scope": "", "description": subject}
@@ -198,6 +204,11 @@ def main():
     parser.add_argument("--format", choices=FORMATTERS.keys(), default="keepachangelog")
     parser.add_argument("--output", help="Output file path")
     parser.add_argument(
+        "--version",
+        dest="version_label",
+        help="Version label for the changelog header (e.g. v1.3.0)",
+    )
+    parser.add_argument(
         "--prepend",
         action="store_true",
         help="Prepend to existing file instead of overwriting (requires --output)",
@@ -227,7 +238,8 @@ def main():
         sys.exit(0)
 
     formatter = FORMATTERS[args.format]
-    output = formatter(commits, from_ref, args.to_ref)
+    label = args.version_label or args.to_ref
+    output = formatter(commits, from_ref, label)
 
     if args.output:
         if args.prepend:

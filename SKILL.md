@@ -20,6 +20,7 @@ Options:
 - `--to`: End ref. Defaults to HEAD.
 - `--format`: Output format — `keepachangelog` (default), `conventional`, `grouped`.
 - `--output`: Write to file instead of stdout. Use `CHANGELOG.md` for standard placement.
+- `--version`: Custom version label for the header (e.g. `v1.3.0`). Defaults to `--to` ref.
 - `--prepend`: Insert new entries into existing file below the H1 header (requires `--output`).
 - `--no-merges`: Exclude merge commits.
 
@@ -63,3 +64,22 @@ For detailed format specifications and examples, see [references/formats.md](ref
 - Merge commits: Included by default. Pass `--no-merges` to exclude.
 - Empty range: Script exits with message, no output file written.
 - Existing CHANGELOG.md: Use `--prepend` to insert above old entries instead of overwriting.
+
+## Examples
+
+```bash
+# Generate changelog from latest tag to HEAD (default)
+python3 scripts/generate_changelog.py
+
+# Generate for a specific release
+python3 scripts/generate_changelog.py --from v1.2.0 --to v1.3.0 --version v1.3.0
+
+# Append to existing CHANGELOG.md
+python3 scripts/generate_changelog.py --version v1.3.0 --output CHANGELOG.md --prepend
+
+# Conventional format, no merge commits
+python3 scripts/generate_changelog.py --format conventional --no-merges
+
+# Quick internal summary grouped by date
+python3 scripts/generate_changelog.py --format grouped --output release-notes.md
+```
