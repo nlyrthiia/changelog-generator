@@ -55,6 +55,7 @@ The script parses Conventional Commits (`type(scope): description`) and groups t
 | `chore`, `ci`, `build` | Maintenance |
 | `revert` | Removed |
 | `deprecate` | Deprecated |
+| `security` | Security |
 | `!` suffix or `BREAKING CHANGE` | Breaking Changes |
 
 Non-conventional commits are grouped under "Other".

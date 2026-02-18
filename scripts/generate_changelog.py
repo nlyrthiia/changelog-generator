@@ -9,9 +9,13 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 
-# Null byte delimiter — safe against any commit message content
+# Delimiters for parsing git log output
+# Use git's %x00/%x01 escapes in format strings to avoid embedding literal
+# null bytes in subprocess arguments (which crashes Python 3.14+).
 FIELD_SEP = "\x00"
 RECORD_SEP = "\x01"
+GIT_FIELD_SEP = "%x00"
+GIT_RECORD_SEP = "%x01"
 
 CONVENTIONAL_MAP = {
     "feat": "Added",
@@ -26,6 +30,7 @@ CONVENTIONAL_MAP = {
     "build": "Maintenance",
     "revert": "Removed",
     "deprecate": "Deprecated",
+    "security": "Security",
 }
 
 CATEGORY_ORDER = [
@@ -60,11 +65,14 @@ def get_latest_tag():
 
 
 def get_first_commit():
-    return run_git("rev-list", "--max-parents=0", "HEAD")
+    out = run_git("rev-list", "--max-parents=0", "HEAD")
+    if out:
+        return out.splitlines()[0]
+    return None
 
 
 def get_commits(from_ref, to_ref, no_merges=False):
-    fmt = FIELD_SEP.join(["%H", "%s", "%an", "%ai", f"%b{RECORD_SEP}"])
+    fmt = GIT_FIELD_SEP.join(["%H", "%s", "%an", "%ai", f"%b{GIT_RECORD_SEP}"])
     args = ["log", f"{from_ref}..{to_ref}", f"--pretty=format:{fmt}"]
     if no_merges:
         args.append("--no-merges")
